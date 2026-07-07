@@ -1,0 +1,3 @@
+# Only needed for examples/18_probabilistic_inversion.py
+torch
+pyro-ppl

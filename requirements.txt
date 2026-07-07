@@ -1,0 +1,7 @@
+gempy[base,opt]==2026.0.3
+pyvista
+# Pinned: matplotlib 3.11.0's wheel is unreliable to unpack on this machine
+# (consistently fails with a file-locked/missing error, likely security
+# software scanning its bundled binaries) -- 3.9.2 installs cleanly and still
+# satisfies pyvista's matplotlib>=3.0.1 requirement.
+matplotlib==3.9.2
