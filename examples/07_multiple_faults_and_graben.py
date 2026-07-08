@@ -1,57 +1,56 @@
-"""Two near-vertical faults with opposing dip directions bounding a flat
-layer -- the classic graben pattern, where the block between the two faults
-drops down relative to the surrounding rock. Demonstrates
-set_fault_relation's fault-fault interaction matrix, which is required
-whenever more than one fault group exists."""
+"""Two near-vertical faults with opposing dip directions bounding a
+six-layer stratigraphic pile -- the classic graben pattern, where the block
+between the two faults drops down relative to the surrounding rock.
+Demonstrates set_fault_relation's fault-fault interaction matrix, which is
+required whenever more than one fault group exists.
+
+Data: examples/data/lisa_models/interfaces7.csv + foliations7.csv -- gempy's
+own real graben teaching dataset (Fault_1/Fault_2 plus six stratigraphic
+formations), loaded via ImporterHelper. These files carry a few extra
+bookkeeping columns (series, isFault, annotations, ...) beyond the minimal
+X/Y/Z/formation schema -- ImporterHelper looks columns up by name, so the
+extras are simply ignored."""
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import gempy as gp
 import gempy_viewer as gpv
 
-OUTPUTS = Path(__file__).parent / "outputs"
+HERE = Path(__file__).parent
+DATA = HERE / "data" / "lisa_models"
+OUTPUTS = HERE / "outputs"
 OUTPUTS.mkdir(exist_ok=True, parents=True)
+
+points = pd.read_csv(DATA / "interfaces7.csv")
+pad_xy, pad_z = 250, 300
+extent = [
+    points.X.min() - pad_xy, points.X.max() + pad_xy,
+    points.Y.min() - pad_xy, points.Y.max() + pad_xy,
+    points.Z.min() - pad_z, points.Z.max() + pad_z,
+]
 
 geo_model = gp.create_geomodel(
     project_name="Graben",
-    extent=[0, 1000, 0, 200, 0, 500],
-    resolution=[50, 10, 30],
-    structural_frame=gp.data.StructuralFrame.initialize_default_structure(),
+    extent=extent,
+    resolution=[50, 10, 40],
+    importer_helper=gp.data.ImporterHelper(
+        path_to_surface_points=str(DATA / "interfaces7.csv"),
+        path_to_orientations=str(DATA / "foliations7.csv"),
+    ),
 )
-geo_model.structural_frame.structural_elements[0].name = "rock1"
-gp.add_surface_points(geo_model=geo_model, x=[0, 1000], y=[100, 100], z=[300, 300],
-                       elements_names=["rock1", "rock1"])
-gp.add_orientations(geo_model=geo_model, x=[500], y=[100], z=[300],
-                     elements_names=["rock1"], pole_vector=[np.array([0, 0, 1])])
 
-color_gen = geo_model.structural_frame.color_generator
-
-
-def make_fault(name, x_pts, z_pts, dip_deg, azimuth_deg):
-    dip, az = np.radians(dip_deg), np.radians(azimuth_deg)
-    return gp.data.StructuralElement(
-        name=name,
-        color=next(color_gen),
-        surface_points=gp.data.SurfacePointsTable.from_arrays(
-            x=np.array(x_pts), y=np.array([50, 150]), z=np.array(z_pts), names=name),
-        orientations=gp.data.OrientationsTable.from_arrays(
-            x=np.array([np.mean(x_pts)]), y=np.array([100]), z=np.array([np.mean(z_pts)]),
-            G_x=np.array([np.sin(dip) * np.sin(az)]),
-            G_y=np.array([0.0]),
-            G_z=np.array([np.cos(dip)]),
-            names=name),
-    )
-
-
-fault_left = make_fault("fault_left", [350, 380], [450, 50], dip_deg=75, azimuth_deg=90)
-fault_right = make_fault("fault_right", [650, 620], [450, 50], dip_deg=75, azimuth_deg=270)
-
-geo_model.structural_frame.insert_group(0, gp.data.StructuralGroup(
-    name="Fault_Series_1", elements=[fault_left], structural_relation=gp.data.StackRelationType.FAULT))
-geo_model.structural_frame.insert_group(1, gp.data.StructuralGroup(
-    name="Fault_Series_2", elements=[fault_right], structural_relation=gp.data.StackRelationType.FAULT))
-
+# Six real stratigraphic formations, youngest (shallowest) to oldest
+# (deepest), plus the two real graben-bounding faults.
+gp.map_stack_to_surfaces(
+    gempy_model=geo_model,
+    mapping_object={
+        "Fault_Series_1": "Fault_1",
+        "Fault_Series_2": "Fault_2",
+        "Strat_Series": ("Sandstone", "Siltstone", "Shale", "Sandstone_2", "Schist", "Gneiss"),
+    },
+)
 gp.set_is_fault(frame=geo_model, fault_groups=["Fault_Series_1", "Fault_Series_2"])
 gp.set_fault_relation(frame=geo_model.structural_frame,
                        rel_matrix=np.array([[0, 0, 1], [0, 0, 1], [0, 0, 0]]))

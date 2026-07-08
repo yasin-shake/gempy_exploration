@@ -1,41 +1,27 @@
-"""Write small synthetic surface-points/orientations CSVs to disk and load
-them back through gempy's ImporterHelper -- the pattern most real gempy
-projects use, where geological data lives in CSV/spreadsheet form rather
-than being hard-coded in Python."""
+"""Load real surface-points/orientations CSVs from disk through gempy's
+ImporterHelper -- the pattern most real gempy projects use, where geological
+data lives in CSV/spreadsheet form rather than being hard-coded in Python.
+
+Data: examples/data/jan_models/model2_surface_points.csv +
+model2_orientations.csv -- gempy's own anticline teaching dataset (formations
+"rock1"/"rock2"), used unmodified straight off disk."""
 from pathlib import Path
 
-import pandas as pd
 import gempy as gp
 import gempy_viewer as gpv
 
 HERE = Path(__file__).parent
-DATA = HERE / "data"
+DATA = HERE / "data" / "jan_models"
 OUTPUTS = HERE / "outputs"
-DATA.mkdir(exist_ok=True, parents=True)
 OUTPUTS.mkdir(exist_ok=True, parents=True)
-
-points = pd.DataFrame({
-    "X": [0, 500, 1000, 0, 500, 1000],
-    "Y": [500] * 6,
-    "Z": [200, 250, 300, 500, 550, 600],
-    "formation": ["rock1"] * 3 + ["rock2"] * 3,
-})
-points.to_csv(DATA / "points.csv", index=False)
-
-orientations = pd.DataFrame({
-    "X": [500], "Y": [500], "Z": [200],
-    "azimuth": [90], "dip": [5], "polarity": [1],
-    "formation": ["rock1"],
-})
-orientations.to_csv(DATA / "orientations.csv", index=False)
 
 geo_model = gp.create_geomodel(
     project_name="CSV_Model",
-    extent=[0, 1000, 0, 1000, 0, 700],
+    extent=[0, 1000, 0, 1000, 0, 1000],
     refinement=4,
     importer_helper=gp.data.ImporterHelper(
-        path_to_surface_points=str(DATA / "points.csv"),
-        path_to_orientations=str(DATA / "orientations.csv"),
+        path_to_surface_points=str(DATA / "model2_surface_points.csv"),
+        path_to_orientations=str(DATA / "model2_orientations.csv"),
     ),
 )
 

@@ -1,42 +1,46 @@
-"""A single normal fault offsetting a flat rock layer. The layer's surface
+"""A single normal fault offsetting two rock layers. The layer's surface
 points are supplied already "pre-offset" on each side of the fault plane --
 that's the standard gempy convention: you provide the observed depths on
-either side, and the fault machinery introduces the discontinuity itself."""
+either side, and the fault machinery introduces the discontinuity itself.
+
+Data: examples/data/jan_models/model5_surface_points.csv +
+model5_orientations.csv -- gempy's own real single-fault teaching dataset
+(formations "rock1"/"rock2" plus a "fault" surface), loaded via
+ImporterHelper."""
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import gempy as gp
 import gempy_viewer as gpv
 
-OUTPUTS = Path(__file__).parent / "outputs"
+HERE = Path(__file__).parent
+DATA = HERE / "data" / "jan_models"
+OUTPUTS = HERE / "outputs"
 OUTPUTS.mkdir(exist_ok=True, parents=True)
+
+points = pd.read_csv(DATA / "model5_surface_points.csv")
+pad_xy, pad_z = 150, 150
+extent = [
+    points.X.min() - pad_xy, points.X.max() + pad_xy,
+    points.Y.min() - pad_xy, points.Y.max() + pad_xy,
+    points.Z.min() - pad_z, points.Z.max() + pad_z,
+]
 
 geo_model = gp.create_geomodel(
     project_name="One_Fault",
-    extent=[0, 1000, 0, 200, 0, 900],
+    extent=extent,
     resolution=[50, 10, 50],
-    structural_frame=gp.data.StructuralFrame.initialize_default_structure(),
+    importer_helper=gp.data.ImporterHelper(
+        path_to_surface_points=str(DATA / "model5_surface_points.csv"),
+        path_to_orientations=str(DATA / "model5_orientations.csv"),
+    ),
 )
-geo_model.structural_frame.structural_elements[0].name = "rock1"
-gp.add_surface_points(geo_model=geo_model, x=[0, 1000], y=[100, 100], z=[500, 300],
-                       elements_names=["rock1", "rock1"])
-gp.add_orientations(geo_model=geo_model, x=[500], y=[100], z=[400],
-                     elements_names=["rock1"], pole_vector=[np.array([0, 0, 1])])
-
-color_gen = geo_model.structural_frame.color_generator
-fault_elem = gp.data.StructuralElement(
-    name="fault1",
-    color=next(color_gen),
-    surface_points=gp.data.SurfacePointsTable.from_arrays(
-        x=np.array([500, 450]), y=np.array([50, 150]), z=np.array([700, 100]), names="fault1"),
-    orientations=gp.data.OrientationsTable.from_arrays(
-        x=np.array([475]), y=np.array([100]), z=np.array([400]),
-        G_x=np.array([0.87]), G_y=np.array([0.0]), G_z=np.array([0.5]), names="fault1"),
+gp.map_stack_to_surfaces(
+    gempy_model=geo_model,
+    mapping_object={"Fault_Series": "fault", "Strat_Series": ("rock2", "rock1")},
 )
-fault_group = gp.data.StructuralGroup(
-    name="Fault_Series", elements=[fault_elem], structural_relation=gp.data.StackRelationType.FAULT)
-geo_model.structural_frame.insert_group(0, fault_group)
 geo_model.structural_frame.fault_relations = np.array([[0, 1], [0, 0]])
 gp.set_is_fault(frame=geo_model, fault_groups=["Fault_Series"])
 

@@ -1,5 +1,19 @@
 """Compare gempy's global anisotropy transforms (CUBE vs NONE) and its two
-computation backends (numpy vs PyTorch)."""
+computation backends (numpy vs PyTorch).
+
+Data: kept synthetic/hand-crafted here, deliberately. The natural real-data
+candidate for this comparison was examples/data/tut_SandStone (filtered to
+its "EarlyGranite" formation), whose extent is genuinely elongated
+(~48km x 15km x 80m real relief). That was tried first, but a single sparse
+27-point surface interpolated across such an extreme aspect ratio produces
+visible numerical artifacts (thin spurious bands) rather than clean
+geology -- and even then, CUBE vs NONE still barely diverge, the same
+"subtle difference" limitation this sparse-data comparison already has
+either way. Real data made this specific demo noisier without fixing the
+thing it exists to show, so a small elongated (4:1) synthetic dataset is
+used instead: on a perfectly cubic extent GlobalAnisotropy.CUBE would have
+nothing to normalize and look identical to NONE, so the extent is stretched
+in X relative to Z to make the two visibly differ."""
 from pathlib import Path
 
 import numpy as np
@@ -11,12 +25,6 @@ OUTPUTS.mkdir(exist_ok=True, parents=True)
 
 
 def build_model():
-    # A deliberately elongated (4:1) extent -- on a perfectly cubic extent,
-    # GlobalAnisotropy.CUBE has nothing to normalize and looks identical to
-    # NONE. Stretching X relative to Z is what makes the two visibly differ:
-    # CUBE rescales all axes into a unit cube before interpolating (so the
-    # kriging kernel's range is isotropic in rescaled space), while NONE
-    # interpolates directly in the elongated coordinate system.
     geo_model = gp.create_geomodel(
         project_name="Anisotropy_Demo",
         extent=[0, 2000, 0, 200, 0, 500],

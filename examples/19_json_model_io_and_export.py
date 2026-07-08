@@ -2,28 +2,42 @@
 round-trip via JsonIO (geometry/configuration only), (2) gempy's own binary
 .gempy save format (still marked "in development" upstream), and (3)
 exporting computed surface meshes to VTK via pyvista for use in other 3D
-tools."""
+tools.
+
+Data: examples/data/jan_models/model2_surface_points.csv +
+model2_orientations.csv -- the same real anticline dataset used by script 04,
+loaded via ImporterHelper."""
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import gempy as gp
 import pyvista as pv
 from gempy.modules.json_io import JsonIO
 
-OUTPUTS = Path(__file__).parent / "outputs"
+HERE = Path(__file__).parent
+DATA = HERE / "data" / "jan_models"
+OUTPUTS = HERE / "outputs"
 OUTPUTS.mkdir(exist_ok=True, parents=True)
+
+points = pd.read_csv(DATA / "model2_surface_points.csv")
+pad_xy, pad_z = 150, 150
+extent = [
+    points.X.min() - pad_xy, points.X.max() + pad_xy,
+    points.Y.min() - pad_xy, points.Y.max() + pad_xy,
+    points.Z.min() - pad_z, points.Z.max() + pad_z,
+]
 
 geo_model = gp.create_geomodel(
     project_name="IO_Demo",
-    extent=[0, 1000, 0, 1000, 0, 1000],
+    extent=extent,
     resolution=[30, 30, 30],
-    structural_frame=gp.data.StructuralFrame.initialize_default_structure(),
+    importer_helper=gp.data.ImporterHelper(
+        path_to_surface_points=str(DATA / "model2_surface_points.csv"),
+        path_to_orientations=str(DATA / "model2_orientations.csv"),
+    ),
 )
-geo_model.structural_frame.structural_elements[0].name = "surface1"
-gp.add_surface_points(geo_model=geo_model, x=[100, 500, 900], y=[500, 500, 500],
-                       z=[300, 600, 300], elements_names=["surface1"] * 3)
-gp.add_orientations(geo_model=geo_model, x=[500], y=[500], z=[600],
-                     elements_names=["surface1"], pole_vector=[np.array([0, 0, 1])])
+gp.map_stack_to_surfaces(gempy_model=geo_model, mapping_object={"Strat_Series": ("rock2", "rock1")})
 geo_model.update_transform(gp.data.GlobalAnisotropy.NONE)
 gp.compute_model(geo_model)
 

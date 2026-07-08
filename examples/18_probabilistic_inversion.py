@@ -15,7 +15,15 @@ it in for this alone isn't worth the dependency.
 Requires: pip install -r requirements-optional.txt
 This is the highest-risk script in the suite -- budget time to debug if the
 underlying gempy_engine internals it touches have shifted since this was
-written."""
+written.
+
+Unlike every other script in this suite, this one deliberately keeps its
+tiny hand-crafted model rather than loading one of the real datasets under
+examples/data/: the prior/forward/NUTS wiring below is indexed against a
+specific surface point (index 0) and a specific custom-grid position (index
+50), both tuned by hand against this exact geometry. Swapping in a larger
+real dataset would shift those indices and risk silently breaking the
+already-fragile autodiff chain for no benefit to what this script teaches."""
 from pathlib import Path
 
 import numpy as np
